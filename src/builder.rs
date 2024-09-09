@@ -115,6 +115,11 @@ impl<W: Write> Builder<W> {
     }
 
     /// Adds a new entry to this archive with the specified path.
+    pub fn append_raw_header<R: Read>(&mut self, header: &[u8], mut data: R) -> io::Result<()> {
+        append_raw_header(self.get_mut(), header, &mut data)
+    }
+
+    /// Adds a new entry to this archive with the specified path.
     ///
     /// This function will set the specified path in the given header, which may
     /// require appending a GNU long-name extension entry to the archive first.
@@ -442,6 +447,25 @@ impl<W: Write> Builder<W> {
 
 fn append(mut dst: &mut dyn Write, header: &Header, mut data: &mut dyn Read) -> io::Result<()> {
     dst.write_all(header.as_bytes())?;
+    let len = io::copy(&mut data, &mut dst)?;
+
+    // Pad with zeros if necessary.
+    let buf = [0; 512];
+    let remaining = 512 - (len % 512);
+    if remaining < 512 {
+        dst.write_all(&buf[..remaining as usize])?;
+    }
+
+    Ok(())
+}
+
+fn append_raw_header(
+    mut dst: &mut dyn Write,
+    header: &[u8],
+    mut data: &mut dyn Read,
+) -> io::Result<()> {
+    dst.write_all(header)?;
+
     let len = io::copy(&mut data, &mut dst)?;
 
     // Pad with zeros if necessary.

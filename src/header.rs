@@ -383,12 +383,17 @@ impl Header {
         if let Some(ustar) = self.as_ustar_mut() {
             return ustar.set_path(path);
         }
-        copy_path_into(&mut self.as_old_mut().name, path, false).map_err(|err| {
-            io::Error::new(
-                err.kind(),
-                format!("{} when setting path for {}", err, self.path_lossy()),
-            )
-        })
+        println!("{:?}", path);
+        if "././@PaxHeader".eq(path.to_str().unwrap()) {
+            return copy_into(&mut self.as_old_mut().name, "././@PaxHeader".as_bytes());
+        } else {
+            copy_path_into(&mut self.as_old_mut().name, path, false).map_err(|err| {
+                io::Error::new(
+                    err.kind(),
+                    format!("{} when setting path for {}", err, self.path_lossy()),
+                )
+            })
+        }
     }
 
     /// Returns the link name stored in this header, if any is found.
@@ -972,7 +977,12 @@ impl UstarHeader {
 
     /// See `Header::set_path`
     pub fn set_path<P: AsRef<Path>>(&mut self, p: P) -> io::Result<()> {
-        self._set_path(p.as_ref())
+        println!("{:?}", p.as_ref());
+        if "././@PaxHeader".eq(p.as_ref().to_str().unwrap()) {
+            return copy_into(&mut self.name, "././@PaxHeader".as_bytes());
+        } else {
+            self._set_path(p.as_ref())
+        }
     }
 
     fn _set_path(&mut self, path: &Path) -> io::Result<()> {
