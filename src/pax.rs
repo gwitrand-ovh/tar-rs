@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 use std::io;
+use std::io::Write;
 use std::slice;
 use std::str;
 
@@ -143,5 +144,56 @@ impl<'entry> PaxExtension<'entry> {
     /// Returns the underlying raw bytes for this value of this key/value pair.
     pub fn value_bytes(&self) -> &'entry [u8] {
         self.value
+    }
+}
+
+#[allow(missing_docs)]
+pub struct PaxBuilder {
+    data: Vec<u8>,
+    tainted: bool,
+}
+
+#[allow(missing_docs)]
+impl PaxBuilder {
+    pub fn new() -> Self {
+        Self {
+            data: Vec::new(),
+            tainted: false,
+        }
+    }
+
+    pub fn add(&mut self, key: &str, value: &str) {
+        self.tainted = true;
+        let mut len_len = 1;
+        let mut max_len = 10;
+        let rest_len = 3 + key.len() + value.len();
+        while rest_len + len_len >= max_len {
+            len_len += 1;
+            max_len *= 10;
+        }
+        let len = rest_len + len_len;
+        write!(&mut self.data, "{} {}={}\n", len, key, value).unwrap();
+    }
+
+    pub fn tainted(&self) -> bool {
+        self.tainted
+    }
+
+    fn as_bytes(&self) -> &[u8] {
+        &self.data
+    }
+}
+
+pub trait BuilderExt {
+    fn append_pax_extensions(&mut self, headers: &PaxBuilder) -> Result<(), io::Error>;
+}
+
+impl<T: Write> BuilderExt for crate::Builder<T> {
+    fn append_pax_extensions(&mut self, headers: &PaxBuilder) -> Result<(), io::Error> {
+        let mut header = crate::Header::new_ustar();
+        header.set_size(headers.as_bytes().len() as u64);
+        header.set_entry_type(crate::EntryType::XHeader);
+        header.set_cksum();
+        self.append(&header, headers.as_bytes())
     }
 }
