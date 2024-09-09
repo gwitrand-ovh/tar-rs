@@ -29,7 +29,7 @@ pub use crate::entry::{Entry, Unpacked};
 pub use crate::entry_type::EntryType;
 pub use crate::header::GnuExtSparseHeader;
 pub use crate::header::{GnuHeader, GnuSparseHeader, Header, HeaderMode, OldHeader, UstarHeader};
-pub use crate::pax::{PaxExtension, PaxExtensions};
+pub use crate::pax::{PaxExtension, PaxExtensions, PaxBuilder, BuilderExt};
 
 mod archive;
 mod builder;
