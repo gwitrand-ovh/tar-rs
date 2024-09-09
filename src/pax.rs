@@ -147,23 +147,28 @@ impl<'entry> PaxExtension<'entry> {
     }
 }
 
-#[allow(missing_docs)]
+/// A builder for PAX extended headers.
+/// It has the data for the extended header
+/// and a status on whether the extended header has been updated.
 pub struct PaxBuilder {
     data: Vec<u8>,
-    tainted: bool,
+    updated: bool,
 }
 
-#[allow(missing_docs)]
+/// A builder for PAX extended headers.
 impl PaxBuilder {
+    /// Create a new builder for PAX extended headers.
     pub fn new() -> Self {
         Self {
             data: Vec::new(),
-            tainted: false,
+            updated: false,
         }
     }
 
+    /// Add a key/value pair to the extended header.
+    /// It writes the key/value pair in data Vec to be written to the archive.
     pub fn add(&mut self, key: &str, value: &str) {
-        self.tainted = true;
+        self.updated = true;
         let mut len_len = 1;
         let mut max_len = 10;
         let rest_len = 3 + key.len() + value.len();
@@ -175,21 +180,35 @@ impl PaxBuilder {
         write!(&mut self.data, "{} {}={}\n", len, key, value).unwrap();
     }
 
-    pub fn tainted(&self) -> bool {
-        self.tainted
+    /// Getter for the updated field.
+    pub fn updated(&self) -> bool {
+        self.updated
     }
 
+    /// Getter for the data field as bytes.
     fn as_bytes(&self) -> &[u8] {
         &self.data
     }
 }
 
+/// Extension trait for `Builder` to append PAX extended headers.
 pub trait BuilderExt {
+    /// Append PAX extended headers to the archive.
     fn append_pax_extensions(&mut self, headers: &PaxBuilder) -> Result<(), io::Error>;
 }
 
+/// Extension trait for `Builder` to append PAX extended headers.
 impl<T: Write> BuilderExt for crate::Builder<T> {
+    /// Append PAX extended headers to the archive.
     fn append_pax_extensions(&mut self, headers: &PaxBuilder) -> Result<(), io::Error> {
+        /// Ignore the header if it's empty.
+        if !headers.updated() {
+            return Ok(())
+        }
+
+        /// Create a header of type XHeader, set the size to the length of the
+        /// data, set the entry type to XHeader, and set the checksum
+        /// then append the header and the data to the archive.
         let mut header = crate::Header::new_ustar();
         header.set_size(headers.as_bytes().len() as u64);
         header.set_entry_type(crate::EntryType::XHeader);
