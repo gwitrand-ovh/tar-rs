@@ -166,6 +166,7 @@ impl PaxBuilder {
     }
 
     /// Add a key/value pair to the extended header.
+    ///
     /// It writes the key/value pair in data Vec to be written to the archive.
     pub fn add(&mut self, key: &str, value: &str) {
         self.updated = true;
@@ -201,14 +202,14 @@ pub trait BuilderExt {
 impl<T: Write> BuilderExt for crate::Builder<T> {
     /// Append PAX extended headers to the archive.
     fn append_pax_extensions(&mut self, headers: &PaxBuilder) -> Result<(), io::Error> {
-        /// Ignore the header if it's empty.
+        // Ignore the header if it's empty.
         if !headers.updated() {
             return Ok(())
         }
 
-        /// Create a header of type XHeader, set the size to the length of the
-        /// data, set the entry type to XHeader, and set the checksum
-        /// then append the header and the data to the archive.
+        // Create a header of type XHeader, set the size to the length of the
+        // data, set the entry type to XHeader, and set the checksum
+        // then append the header and the data to the archive.
         let mut header = crate::Header::new_ustar();
         header.set_size(headers.as_bytes().len() as u64);
         header.set_entry_type(crate::EntryType::XHeader);
